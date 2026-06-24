@@ -32,7 +32,7 @@ export interface MatItemPedido {
 }
 
 export interface MatCatalogo {
-  id: string
+  id: number
   codigo_impakto: string
   descricao: string
   unidade: string
