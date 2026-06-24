@@ -1,0 +1,44 @@
+import { BookOpen, ToggleRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+
+const atalhos = [
+  {
+    to: '/admin/catalogo',
+    icon: BookOpen,
+    label: 'Catálogo de Materiais',
+    desc: 'Gerencie os 229 produtos Impakto',
+    color: 'bg-blue-50 text-blue-600',
+  },
+  {
+    to: '/admin/configuracoes',
+    icon: ToggleRight,
+    label: 'Configurações',
+    desc: 'Em breve',
+    color: 'bg-gray-50 text-gray-400',
+  },
+]
+
+export default function AdminDashboard() {
+  return (
+    <div className="p-4 space-y-4">
+      <h2 className="text-lg font-semibold text-gray-800">Painel Admin</h2>
+      <div className="grid gap-3">
+        {atalhos.map(({ to, icon: Icon, label, desc, color }) => (
+          <Link
+            key={to}
+            to={to}
+            className="flex items-center gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
+          >
+            <div className={`p-3 rounded-xl ${color}`}>
+              <Icon size={22} />
+            </div>
+            <div>
+              <p className="font-medium text-gray-800 text-sm">{label}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}

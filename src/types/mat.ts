@@ -31,6 +31,20 @@ export interface MatItemPedido {
   observacao_item?: string
 }
 
+export interface MatCatalogo {
+  id: string
+  codigo_impakto: string
+  descricao: string
+  unidade: string
+  categoria: string | null
+  ativo: boolean
+  foto_storage_path: string | null
+  foto_thumb_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** @deprecated use MatCatalogo */
 export interface MatProduto {
   id: string
   codigo_impakto: string
