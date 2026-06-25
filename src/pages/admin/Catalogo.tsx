@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import type { MatCatalogo } from '@/types/mat'
 import {
   Search, ImageOff, CheckCircle2, XCircle, ChevronUp, ChevronDown,
-  Loader2, Upload, Trash2, Pencil, Check, X, FileText,
+  Loader2, Upload, Trash2, Pencil, Check, X, FileText, Plus,
 } from 'lucide-react'
 
 const BUCKET = 'mat-fotos'
@@ -31,47 +31,75 @@ interface EditState {
   unidade: string
 }
 
-// ─── Drawer de edição do produto ───────────────────────────────────────────────
-interface DrawerProps {
-  item: MatCatalogo
+// ─── Drawer edição / criação do produto ────────────────────────────────────────
+interface DrawerEditProps {
+  item: MatCatalogo | null   // null = modo criação
   onClose: () => void
   onSaved: (updated: MatCatalogo) => void
 }
 
-function DrawerEditarProduto({ item, onClose, onSaved }: DrawerProps) {
-  const [nome, setNome] = useState(item.nome_custom ?? item.descricao)
-  const [uso, setUso] = useState(item.descricao_uso ?? '')
+function DrawerProduto({ item, onClose, onSaved }: DrawerEditProps) {
+  const isNew = item === null
+
+  const [codigo, setCodigo] = useState('')
+  const [nome, setNome] = useState(isNew ? '' : (item.nome_custom ?? item.descricao))
+  const [uso, setUso] = useState(isNew ? '' : (item.descricao_uso ?? ''))
+  const [categoria, setCategoria] = useState(isNew ? 'outros' : (item.categoria ?? 'outros'))
+  const [unidade, setUnidade] = useState(isNew ? 'UN' : item.unidade)
   const [saving, setSaving] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   async function salvar() {
+    if (isNew && !codigo.trim()) { setErro('Informe o código do produto.'); return }
+    if (!nome.trim()) { setErro('Informe o nome do produto.'); return }
+
     setSaving(true)
     setErro(null)
-    const { error } = await supabase
-      .from('mat_catalogo')
-      .update({
-        nome_custom: nome.trim() || null,
-        descricao_uso: uso.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', item.id)
 
-    if (error) {
-      setErro('Erro ao salvar: ' + error.message)
-      setSaving(false)
-      return
+    if (isNew) {
+      // Verifica código duplicado
+      const { data: exist } = await supabase
+        .from('mat_catalogo')
+        .select('id')
+        .eq('codigo_impakto', codigo.trim().toUpperCase())
+        .maybeSingle()
+      if (exist) { setErro('Já existe um produto com esse código.'); setSaving(false); return }
+
+      const { data, error } = await supabase
+        .from('mat_catalogo')
+        .insert({
+          codigo_impakto: codigo.trim().toUpperCase(),
+          descricao: nome.trim(),
+          nome_custom: nome.trim(),
+          descricao_uso: uso.trim() || null,
+          categoria: categoria || null,
+          unidade,
+          ativo: true,
+        })
+        .select()
+        .single()
+
+      if (error) { setErro('Erro ao criar: ' + error.message); setSaving(false); return }
+      onSaved(data)
+    } else {
+      const { error } = await supabase
+        .from('mat_catalogo')
+        .update({
+          nome_custom: nome.trim() || null,
+          descricao_uso: uso.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', item.id)
+
+      if (error) { setErro('Erro ao salvar: ' + error.message); setSaving(false); return }
+      onSaved({ ...item, nome_custom: nome.trim() || null, descricao_uso: uso.trim() || null })
     }
-
-    onSaved({ ...item, nome_custom: nome.trim() || null, descricao_uso: uso.trim() || null })
     onClose()
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" />
-
-      {/* Drawer */}
       <div
         className="relative bg-white w-full max-w-md rounded-t-2xl p-5 space-y-4 animate-slide-up"
         onClick={e => e.stopPropagation()}
@@ -79,34 +107,51 @@ function DrawerEditarProduto({ item, onClose, onSaved }: DrawerProps) {
         {/* Cabeçalho */}
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs text-gray-400 font-mono">{item.codigo_impakto}</p>
-            <p className="text-xs text-gray-400 mt-0.5 leading-snug max-w-[260px] line-clamp-2">
-              {item.descricao}
-            </p>
+            <h2 className="text-sm font-semibold text-gray-800">
+              {isNew ? '➕ Novo produto' : 'Editar produto'}
+            </h2>
+            {!isNew && (
+              <p className="text-xs text-gray-400 font-mono mt-0.5">{item.codigo_impakto}</p>
+            )}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1" aria-label="Fechar">
-            ×
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1" aria-label="Fechar">×</button>
         </div>
 
-        {/* Campo: Nome do produto */}
+        {/* Código — somente no modo criação */}
+        {isNew && (
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Código do produto <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={codigo}
+              onChange={e => setCodigo(e.target.value.toUpperCase())}
+              maxLength={30}
+              placeholder="Ex: LIM-001"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
+            />
+          </div>
+        )}
+
+        {/* Nome */}
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1">
-            Nome do produto
-            <span className="ml-1 font-normal text-gray-400">(como aparece para as supervisoras)</span>
+            Nome do produto <span className="text-red-400">*</span>
+            {!isNew && <span className="ml-1 font-normal text-gray-400">(como aparece para as supervisoras)</span>}
           </label>
           <input
             type="text"
             value={nome}
             onChange={e => setNome(e.target.value)}
             maxLength={120}
-            placeholder={item.descricao}
+            placeholder={isNew ? 'Ex: Detergente Neutro 500ml' : item.descricao}
             className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
           />
           <p className="text-right text-xs text-gray-300 mt-0.5">{nome.length}/120</p>
         </div>
 
-        {/* Campo: Descrição de uso */}
+        {/* Descrição de uso */}
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1">
             Descrição de uso
@@ -123,10 +168,34 @@ function DrawerEditarProduto({ item, onClose, onSaved }: DrawerProps) {
           <p className="text-right text-xs text-gray-300 mt-0.5">{uso.length}/300</p>
         </div>
 
-        {/* Erro */}
-        {erro && (
-          <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{erro}</p>
+        {/* Categoria + Unidade — somente no modo criação */}
+        {isNew && (
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Categoria</label>
+              <select
+                value={categoria}
+                onChange={e => setCategoria(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
+              >
+                {CATEGORIAS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
+            <div className="w-28">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Unidade</label>
+              <select
+                value={unidade}
+                onChange={e => setUnidade(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
+              >
+                {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+          </div>
         )}
+
+        {/* Erro */}
+        {erro && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{erro}</p>}
 
         {/* Ações */}
         <div className="flex gap-2 pt-1">
@@ -141,7 +210,12 @@ function DrawerEditarProduto({ item, onClose, onSaved }: DrawerProps) {
             disabled={saving}
             className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            {saving ? <><Loader2 size={16} className="animate-spin" /> Salvando…</> : <><Check size={16} /> Salvar</>}
+            {saving
+              ? <><Loader2 size={16} className="animate-spin" /> Salvando…</>
+              : isNew
+                ? <><Plus size={16} /> Criar produto</>
+                : <><Check size={16} /> Salvar</>
+            }
           </button>
         </div>
       </div>
@@ -167,8 +241,8 @@ export default function Catalogo() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editState, setEditState] = useState<EditState>({ categoria: '', unidade: '' })
 
-  // Drawer edição produto
-  const [drawerItem, setDrawerItem] = useState<MatCatalogo | null>(null)
+  // Drawer edição/criação — null = fechado, 'new' = novo, MatCatalogo = editar
+  const [drawerItem, setDrawerItem] = useState<MatCatalogo | 'new' | null>(null)
 
   // Modal foto
   const [fotoModal, setFotoModal] = useState<MatCatalogo | null>(null)
@@ -273,11 +347,9 @@ export default function Catalogo() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // Abre o drawer ao clicar na linha — exceto quando o clique veio de um elemento interativo
+  // Clique na linha — abre drawer de edição
   function onRowClick(e: React.MouseEvent<HTMLTableRowElement>, item: MatCatalogo) {
-    // Se estiver no modo edição inline (categoria/unidade), não abre o drawer
     if (editingId === item.id) return
-    // Ignora cliques originados em botões, selects, inputs ou seus filhos
     const tag = (e.target as HTMLElement).closest('button, select, input, a, [data-no-drawer]')
     if (tag) return
     setDrawerItem(item)
@@ -321,17 +393,28 @@ export default function Catalogo() {
   return (
     <div className="flex flex-col min-h-full">
 
-      {/* Filtros */}
+      {/* Filtros + botão novo produto */}
       <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3 space-y-3 sticky top-[52px] z-10">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            placeholder="Buscar código, nome ou descrição…"
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Buscar código, nome ou descrição…"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
+            />
+          </div>
+          {/* Botão novo produto */}
+          <button
+            onClick={() => setDrawerItem('new')}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 active:scale-95 transition-all"
+            title="Adicionar novo produto"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Novo</span>
+          </button>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
           <select
@@ -407,8 +490,7 @@ export default function Catalogo() {
                     }`}
                     title="Clique para editar nome e descrição de uso"
                   >
-
-                    {/* Thumb — clica abre modal de foto, não o drawer */}
+                    {/* Thumb */}
                     <td className="px-3 py-2">
                       <button
                         onClick={() => abrirModal(item)}
@@ -442,7 +524,7 @@ export default function Catalogo() {
                       )}
                     </td>
 
-                    {/* Categoria — inline edit — data-no-drawer para bloquear propagação visual, o JS já cuida */}
+                    {/* Categoria — inline edit */}
                     <td className="px-3 py-2 whitespace-nowrap" data-no-drawer>
                       {isEditing ? (
                         <select
@@ -523,13 +605,17 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* Drawer edição produto */}
-      {drawerItem && (
-        <DrawerEditarProduto
-          item={drawerItem}
+      {/* Drawer edição / criação */}
+      {drawerItem !== null && (
+        <DrawerProduto
+          item={drawerItem === 'new' ? null : drawerItem}
           onClose={() => setDrawerItem(null)}
           onSaved={updated => {
-            setItens(prev => prev.map(i => i.id === updated.id ? updated : i))
+            if (drawerItem === 'new') {
+              setItens(prev => [updated, ...prev].sort((a, b) => a.codigo_impakto.localeCompare(b.codigo_impakto)))
+            } else {
+              setItens(prev => prev.map(i => i.id === updated.id ? updated : i))
+            }
             setDrawerItem(null)
           }}
         />

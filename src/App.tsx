@@ -92,6 +92,7 @@ export default function App() {
         }
       >
         <Route index element={<ComprasDashboard />} />
+        <Route path="catalogo" element={<Catalogo />} />
       </Route>
 
       {/* Diretoria */}
