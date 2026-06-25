@@ -32,6 +32,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialize: async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
+      // Bloqueia contas fora do dominio equippe.com.br
+      if (!session.user.email?.endsWith('@equippe.com.br')) {
+        await supabase.auth.signOut()
+        set({ user: null, perfil: null, perfilAtivo: false, loading: false })
+        return
+      }
       const { perfil, ativo } = await fetchPerfil(session.user.id)
       set({ user: session.user, perfil, perfilAtivo: ativo, loading: false })
     } else {
@@ -40,6 +46,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        if (!session.user.email?.endsWith('@equippe.com.br')) {
+          await supabase.auth.signOut()
+          set({ user: null, perfil: null, perfilAtivo: false, loading: false })
+          return
+        }
         const { perfil, ativo } = await fetchPerfil(session.user.id)
         set({ user: session.user, perfil, perfilAtivo: ativo, loading: false })
       } else {
@@ -53,9 +64,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          hd: 'equippe.com.br',
-        },
       },
     })
     if (error) throw error
