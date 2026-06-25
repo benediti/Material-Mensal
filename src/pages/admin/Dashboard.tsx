@@ -1,4 +1,4 @@
-import { BookOpen, ToggleRight } from 'lucide-react'
+import { BookOpen, Settings, BarChart3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const atalhos = [
@@ -11,10 +11,17 @@ const atalhos = [
   },
   {
     to: '/admin/configuracoes',
-    icon: ToggleRight,
+    icon: Settings,
     label: 'Configurações',
+    desc: 'Usuários, perfis e acessos',
+    color: 'bg-teal-50 text-teal-600',
+  },
+  {
+    to: '/admin/pedidos',
+    icon: BarChart3,
+    label: 'Pedidos',
     desc: 'Em breve',
-    color: 'bg-gray-50 text-gray-400',
+    color: 'bg-gray-50 text-gray-300',
   },
 ]
 

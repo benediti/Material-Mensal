@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom'
+import { Outlet, useNavigate, NavLink } from 'react-router-dom'
 import { LogOut, LayoutDashboard, BookOpen } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 

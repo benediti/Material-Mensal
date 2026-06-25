@@ -2,21 +2,9 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 
-const ROTA_POR_PERFIL: Record<string, string> = {
-  ti: '/admin',
-  compras: '/compras',
-  diretoria: '/diretoria',
-  supervisora: '/',
-  pendente: '/acesso-pendente',
-}
-
 export default function AuthCallback() {
   const navigate = useNavigate()
-  const { user, perfil, perfilAtivo, loading, initialize } = useAuthStore()
-
-  useEffect(() => {
-    initialize()
-  }, [])
+  const { user, perfil, perfilAtivo, loading } = useAuthStore()
 
   useEffect(() => {
     if (loading) return
@@ -31,8 +19,7 @@ export default function AuthCallback() {
       return
     }
 
-    const rota = ROTA_POR_PERFIL[perfil ?? ''] ?? '/'
-    navigate(rota, { replace: true })
+    navigate('/admin', { replace: true })
   }, [loading, user, perfil, perfilAtivo, navigate])
 
   return (

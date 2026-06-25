@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
-type Perfil = 'supervisora' | 'compras' | 'diretoria' | 'ti' | 'pendente' | null
+type Perfil = 'ti' | 'compras' | 'diretoria' | 'pendente' | null
 
 interface AuthState {
   user: User | null
@@ -23,6 +23,9 @@ async function fetchPerfil(userId: string): Promise<{ perfil: Perfil; ativo: boo
   return { perfil: (data?.perfil as Perfil) ?? null, ativo: data?.ativo ?? false }
 }
 
+// Garante que o listener de auth é registrado uma única vez
+let listenerRegistrado = false
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   perfil: null,
@@ -31,8 +34,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     const { data: { session } } = await supabase.auth.getSession()
+
     if (session?.user) {
-      // Bloqueia contas fora do dominio equippe.com.br
       if (!session.user.email?.endsWith('@equippe.com.br')) {
         await supabase.auth.signOut()
         set({ user: null, perfil: null, perfilAtivo: false, loading: false })
@@ -44,19 +47,22 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: null, perfil: null, perfilAtivo: false, loading: false })
     }
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        if (!session.user.email?.endsWith('@equippe.com.br')) {
-          await supabase.auth.signOut()
+    if (!listenerRegistrado) {
+      listenerRegistrado = true
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session?.user) {
+          if (!session.user.email?.endsWith('@equippe.com.br')) {
+            await supabase.auth.signOut()
+            set({ user: null, perfil: null, perfilAtivo: false, loading: false })
+            return
+          }
+          const { perfil, ativo } = await fetchPerfil(session.user.id)
+          set({ user: session.user, perfil, perfilAtivo: ativo, loading: false })
+        } else {
           set({ user: null, perfil: null, perfilAtivo: false, loading: false })
-          return
         }
-        const { perfil, ativo } = await fetchPerfil(session.user.id)
-        set({ user: session.user, perfil, perfilAtivo: ativo, loading: false })
-      } else {
-        set({ user: null, perfil: null, perfilAtivo: false, loading: false })
-      }
-    })
+      })
+    }
   },
 
   signInWithGoogle: async () => {
