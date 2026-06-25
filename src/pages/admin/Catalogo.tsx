@@ -8,6 +8,34 @@ import {
 
 const BUCKET = 'mat-fotos'
 
+// Redimensiona para no máximo 800px no lado maior e converte para WebP
+function comprimirImagem(file: File, maxDim = 800, quality = 0.82): Promise<{ blob: Blob; previewUrl: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      canvas.toBlob(
+        blob => {
+          if (!blob) { reject(new Error('Falha ao comprimir imagem')); return }
+          resolve({ blob, previewUrl: URL.createObjectURL(blob) })
+        },
+        'image/webp',
+        quality,
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Falha ao carregar imagem')) }
+    img.src = objectUrl
+  })
+}
+
 const CATEGORIAS: { value: string; label: string }[] = [
   { value: 'limpeza', label: 'Limpeza' },
   { value: 'higiene', label: 'Higiene' },
@@ -249,7 +277,8 @@ export default function Catalogo() {
   const [uploading, setUploading] = useState(false)
   const [uploadErro, setUploadErro] = useState<string | null>(null)
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
-  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadFile, setUploadFile] = useState<Blob | null>(null)
+  const [uploadInfo, setUploadInfo] = useState<{ originalKB: number; comprimidoKB: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { carregar() }, [])
@@ -300,23 +329,35 @@ export default function Catalogo() {
     setSaving(prev => { const n = new Set(prev); n.delete(item.id); return n })
   }
 
-  // Upload foto
-  function onArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
+  // Upload foto — comprime para WebP 800px antes de enviar
+  async function onArquivoSelecionado(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadErro(null)
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setUploadErro('Somente JPG, PNG ou WEBP são aceitos.'); return }
-    if (file.size > 5 * 1024 * 1024) { setUploadErro('Arquivo deve ter menos de 5 MB.'); return }
-    setUploadFile(file)
-    setUploadPreview(URL.createObjectURL(file))
+    setUploadInfo(null)
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadErro('Somente JPG, PNG ou WEBP são aceitos.')
+      return
+    }
+    if (file.size > 15 * 1024 * 1024) { setUploadErro('Arquivo deve ter menos de 15 MB.'); return }
+    try {
+      const { blob, previewUrl } = await comprimirImagem(file)
+      setUploadFile(blob)
+      setUploadPreview(previewUrl)
+      setUploadInfo({
+        originalKB: Math.round(file.size / 1024),
+        comprimidoKB: Math.round(blob.size / 1024),
+      })
+    } catch {
+      setUploadErro('Não foi possível processar a imagem. Tente outro arquivo.')
+    }
   }
 
   async function confirmarUpload() {
     if (!uploadFile || !fotoModal || uploading) return
     setUploading(true); setUploadErro(null)
-    const ext = uploadFile.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-    const storagePath = `catalogo/${fotoModal.id}_${fotoModal.codigo_impakto}.${ext}`
-    const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, uploadFile, { upsert: true, contentType: uploadFile.type })
+    const storagePath = `catalogo/${fotoModal.id}_${fotoModal.codigo_impakto}.webp`
+    const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, uploadFile, { upsert: true, contentType: 'image/webp' })
     if (upErr) { setUploadErro('Erro no upload: ' + upErr.message); setUploading(false); return }
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath)
     const thumbUrl = urlData?.publicUrl ?? null
@@ -324,7 +365,7 @@ export default function Catalogo() {
     if (dbErr) { setUploadErro('Foto enviada mas erro ao salvar no banco: ' + dbErr.message); setUploading(false); return }
     const itemAtualizado = { ...fotoModal, foto_storage_path: storagePath, foto_thumb_url: thumbUrl }
     setItens(prev => prev.map(i => i.id === fotoModal.id ? itemAtualizado : i))
-    setFotoModal(itemAtualizado); setUploadFile(null); setUploadPreview(null); setUploading(false)
+    setFotoModal(itemAtualizado); setUploadFile(null); setUploadPreview(null); setUploadInfo(null); setUploading(false)
   }
 
   async function removerFoto() {
@@ -340,10 +381,10 @@ export default function Catalogo() {
     setUploading(false)
   }
 
-  function abrirModal(item: MatCatalogo) { setFotoModal(item); setUploadFile(null); setUploadPreview(null); setUploadErro(null) }
+  function abrirModal(item: MatCatalogo) { setFotoModal(item); setUploadFile(null); setUploadPreview(null); setUploadErro(null); setUploadInfo(null) }
   function fecharModal() {
     if (uploading) return
-    setFotoModal(null); setUploadFile(null); setUploadPreview(null); setUploadErro(null)
+    setFotoModal(null); setUploadFile(null); setUploadPreview(null); setUploadErro(null); setUploadInfo(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -657,6 +698,17 @@ export default function Catalogo() {
             </div>
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onArquivoSelecionado} />
             {uploadErro && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{uploadErro}</p>}
+
+            {uploadInfo && (
+              <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                <span className="text-xs text-gray-400 line-through">{uploadInfo.originalKB} KB original</span>
+                <span className="text-xs font-semibold text-green-600">
+                  → {uploadInfo.comprimidoKB} KB WebP
+                  {' '}({Math.round((1 - uploadInfo.comprimidoKB / uploadInfo.originalKB) * 100)}% menor)
+                </span>
+              </div>
+            )}
+
             <div className="flex gap-2">
               {uploadFile && (
                 <button onClick={confirmarUpload} disabled={uploading} className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
@@ -674,7 +726,7 @@ export default function Catalogo() {
                 </button>
               )}
               {uploadFile && (
-                <button onClick={() => { setUploadFile(null); setUploadPreview(null); setUploadErro(null) }} disabled={uploading} className="px-4 py-3 rounded-xl bg-gray-100 text-gray-500 text-sm font-semibold disabled:opacity-60" aria-label="Cancelar seleção">
+                <button onClick={() => { setUploadFile(null); setUploadPreview(null); setUploadErro(null); setUploadInfo(null) }} disabled={uploading} className="px-4 py-3 rounded-xl bg-gray-100 text-gray-500 text-sm font-semibold disabled:opacity-60" aria-label="Cancelar seleção">
                   <X size={16} />
                 </button>
               )}
