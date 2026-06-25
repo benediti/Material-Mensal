@@ -2,52 +2,65 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
-type Perfil = 'supervisora' | 'compras' | 'diretoria' | null
+type Perfil = 'supervisora' | 'compras' | 'diretoria' | 'ti' | 'pendente' | null
 
 interface AuthState {
   user: User | null
   perfil: Perfil
-  supervisoraId: string | null
+  perfilAtivo: boolean
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   initialize: () => Promise<void>
+}
+
+async function fetchPerfil(userId: string): Promise<{ perfil: Perfil; ativo: boolean }> {
+  const { data } = await supabase
+    .from('perfis')
+    .select('perfil, ativo')
+    .eq('id', userId)
+    .single()
+  return { perfil: (data?.perfil as Perfil) ?? null, ativo: data?.ativo ?? false }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   perfil: null,
-  supervisoraId: null,
+  perfilAtivo: false,
   loading: true,
 
   initialize: async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
-      const meta = session.user.user_metadata
-      set({
-        user: session.user,
-        perfil: meta.perfil ?? null,
-        supervisoraId: meta.supervisora_id ?? null,
-        loading: false,
-      })
+      const { perfil, ativo } = await fetchPerfil(session.user.id)
+      set({ user: session.user, perfil, perfilAtivo: ativo, loading: false })
     } else {
-      set({ user: null, perfil: null, supervisoraId: null, loading: false })
+      set({ user: null, perfil: null, perfilAtivo: false, loading: false })
     }
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { perfil, ativo } = await fetchPerfil(session.user.id)
+        set({ user: session.user, perfil, perfilAtivo: ativo, loading: false })
+      } else {
+        set({ user: null, perfil: null, perfilAtivo: false, loading: false })
+      }
+    })
   },
 
-  signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-    const meta = data.user?.user_metadata
-    set({
-      user: data.user,
-      perfil: meta?.perfil ?? null,
-      supervisoraId: meta?.supervisora_id ?? null,
+  signInWithGoogle: async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        hd: 'equippe.com.br',
+      },
     })
+    if (error) throw error
   },
 
   signOut: async () => {
     await supabase.auth.signOut()
-    set({ user: null, perfil: null, supervisoraId: null })
+    set({ user: null, perfil: null, perfilAtivo: false })
   },
 }))
