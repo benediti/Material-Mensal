@@ -35,6 +35,10 @@ export interface MatCatalogo {
   id: number
   codigo_impakto: string
   descricao: string
+  /** Nome editado pelo admin — substitui descricao na exibicao quando preenchido */
+  nome_custom: string | null
+  /** Dica de uso visivel para as supervisoras no momento do pedido */
+  descricao_uso: string | null
   unidade: string
   categoria: string | null
   ativo: boolean
