@@ -16,9 +16,9 @@ interface AuthState {
 
 async function fetchPerfil(userId: string): Promise<{ perfil: Perfil; ativo: boolean }> {
   const { data } = await supabase
-    .from('perfis')
+    .from('usuarios_perfis')
     .select('perfil, ativo')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single()
   return { perfil: (data?.perfil as Perfil) ?? null, ativo: data?.ativo ?? false }
 }
@@ -53,7 +53,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        hd: 'equippe.com.br',
+        queryParams: {
+          hd: 'equippe.com.br',
+        },
       },
     })
     if (error) throw error
