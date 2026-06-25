@@ -273,6 +273,16 @@ export default function Catalogo() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // Abre o drawer ao clicar na linha — exceto quando o clique veio de um elemento interativo
+  function onRowClick(e: React.MouseEvent<HTMLTableRowElement>, item: MatCatalogo) {
+    // Se estiver no modo edição inline (categoria/unidade), não abre o drawer
+    if (editingId === item.id) return
+    // Ignora cliques originados em botões, selects, inputs ou seus filhos
+    const tag = (e.target as HTMLElement).closest('button, select, input, a, [data-no-drawer]')
+    if (tag) return
+    setDrawerItem(item)
+  }
+
   const categoriasDisponiveis = useMemo(() => Array.from(new Set(itens.map(i => i.categoria ?? 'outros'))).sort(), [itens])
   const totalAtivos = itens.filter(i => i.ativo).length
   const totalInativos = itens.length - totalAtivos
@@ -387,9 +397,18 @@ export default function Catalogo() {
                 const nomeExibido = item.nome_custom || item.descricao
 
                 return (
-                  <tr key={item.id} className={`transition-colors ${item.ativo ? 'bg-white hover:bg-gray-50/80' : 'bg-gray-50/60 opacity-60 hover:opacity-80'}`}>
+                  <tr
+                    key={item.id}
+                    onClick={e => onRowClick(e, item)}
+                    className={`transition-colors cursor-pointer ${
+                      item.ativo
+                        ? 'bg-white hover:bg-primary/5 active:bg-primary/10'
+                        : 'bg-gray-50/60 opacity-60 hover:opacity-80 hover:bg-primary/5'
+                    }`}
+                    title="Clique para editar nome e descrição de uso"
+                  >
 
-                    {/* Thumb */}
+                    {/* Thumb — clica abre modal de foto, não o drawer */}
                     <td className="px-3 py-2">
                       <button
                         onClick={() => abrirModal(item)}
@@ -405,32 +424,26 @@ export default function Catalogo() {
                     {/* Código */}
                     <td className="px-3 py-2 font-mono text-xs text-gray-600 whitespace-nowrap">{item.codigo_impakto}</td>
 
-                    {/* Nome + descrição de uso — clica para editar */}
+                    {/* Nome + ícone lápis (visual) + descrição de uso */}
                     <td className="px-3 py-2">
-                      <button
-                        onClick={() => setDrawerItem(item)}
-                        className="text-left group w-full"
-                        title="Editar nome e descrição de uso"
-                      >
-                        <span className="flex items-center gap-1">
-                          <span className={`text-xs leading-snug ${
-                            item.nome_custom ? 'text-gray-800 font-medium' : 'text-gray-600'
-                          } group-hover:text-primary transition-colors`}>
-                            {nomeExibido}
-                          </span>
-                          <Pencil size={10} className="text-gray-300 group-hover:text-primary shrink-0 transition-colors" />
+                      <span className="flex items-center gap-1">
+                        <span className={`text-xs leading-snug ${
+                          item.nome_custom ? 'text-gray-800 font-medium' : 'text-gray-600'
+                        }`}>
+                          {nomeExibido}
                         </span>
-                        {item.descricao_uso && (
-                          <span className="flex items-center gap-1 mt-0.5">
-                            <FileText size={9} className="text-gray-300 shrink-0" />
-                            <span className="text-xs text-gray-400 line-clamp-1">{item.descricao_uso}</span>
-                          </span>
-                        )}
-                      </button>
+                        <Pencil size={10} className="text-gray-300 shrink-0" />
+                      </span>
+                      {item.descricao_uso && (
+                        <span className="flex items-center gap-1 mt-0.5">
+                          <FileText size={9} className="text-gray-300 shrink-0" />
+                          <span className="text-xs text-gray-400 line-clamp-1">{item.descricao_uso}</span>
+                        </span>
+                      )}
                     </td>
 
-                    {/* Categoria — inline edit */}
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    {/* Categoria — inline edit — data-no-drawer para bloquear propagação visual, o JS já cuida */}
+                    <td className="px-3 py-2 whitespace-nowrap" data-no-drawer>
                       {isEditing ? (
                         <select
                           value={editState.categoria}
@@ -444,7 +457,7 @@ export default function Catalogo() {
                         <span
                           onClick={() => iniciarEdicao(item)}
                           className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-xs font-medium px-2 py-0.5 rounded-full cursor-pointer hover:bg-blue-100 transition-colors group"
-                          title="Clique para editar"
+                          title="Clique para editar categoria"
                         >
                           {CATEGORIAS_MAP[item.categoria] ?? item.categoria}
                           <Pencil size={9} className="opacity-0 group-hover:opacity-60" />
@@ -457,7 +470,7 @@ export default function Catalogo() {
                     </td>
 
                     {/* Unidade — inline edit */}
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2" data-no-drawer>
                       {isEditing ? (
                         <select
                           value={editState.unidade}
@@ -467,14 +480,14 @@ export default function Catalogo() {
                           {UNIDADES.map(u => (<option key={u} value={u}>{u}</option>))}
                         </select>
                       ) : (
-                        <span onClick={() => iniciarEdicao(item)} className="text-xs text-gray-500 uppercase cursor-pointer hover:text-primary transition-colors" title="Clique para editar">
+                        <span onClick={() => iniciarEdicao(item)} className="text-xs text-gray-500 uppercase cursor-pointer hover:text-primary transition-colors" title="Clique para editar unidade">
                           {item.unidade}
                         </span>
                       )}
                     </td>
 
                     {/* Ativo + ações */}
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2" data-no-drawer>
                       {isEditing ? (
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => salvarEdicao(item)} disabled={isSaving} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-40" aria-label="Salvar">
