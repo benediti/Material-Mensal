@@ -25,6 +25,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function TiRoute({ children }: { children: React.ReactNode }) {
+  const { perfil, loading } = useAuthStore()
+  if (loading) return null
+  if (perfil !== 'ti') return <Navigate to="/admin" replace />
+  return <>{children}</>
+}
+
 export default function App() {
   const { initialize } = useAuthStore()
 
@@ -48,7 +55,7 @@ export default function App() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="catalogo" element={<Catalogo />} />
-        <Route path="configuracoes" element={<Configuracoes />} />
+        <Route path="configuracoes" element={<TiRoute><Configuracoes /></TiRoute>} />
         <Route path="importar-precos" element={<ImportarPrecos />} />
       </Route>
 

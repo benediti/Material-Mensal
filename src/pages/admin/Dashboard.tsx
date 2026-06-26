@@ -1,38 +1,41 @@
 import { BookOpen, Settings, BarChart3, FileDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
-
-const atalhos = [
-  {
-    to: '/admin/catalogo',
-    icon: BookOpen,
-    label: 'Catálogo de Materiais',
-    desc: 'Gerencie os 229 produtos Impakto',
-    color: 'bg-blue-50 text-blue-600',
-  },
-  {
-    to: '/admin/configuracoes',
-    icon: Settings,
-    label: 'Configurações',
-    desc: 'Usuários, perfis e acessos',
-    color: 'bg-teal-50 text-teal-600',
-  },
-  {
-    to: '/admin/importar-precos',
-    icon: FileDown,
-    label: 'Importar Preços',
-    desc: 'Atualiza preços via arquivo .txt Impakto',
-    color: 'bg-green-50 text-green-600',
-  },
-  {
-    to: '/admin/pedidos',
-    icon: BarChart3,
-    label: 'Pedidos',
-    desc: 'Em breve',
-    color: 'bg-gray-50 text-gray-300',
-  },
-]
+import { useAuthStore } from '@/stores/authStore'
 
 export default function AdminDashboard() {
+  const { perfil } = useAuthStore()
+
+  const atalhos = [
+    {
+      to: '/admin/catalogo',
+      icon: BookOpen,
+      label: 'Catálogo de Materiais',
+      desc: 'Gerencie os produtos Impakto',
+      color: 'bg-blue-50 text-blue-600',
+    },
+    {
+      to: '/admin/importar-precos',
+      icon: FileDown,
+      label: 'Importar Preços',
+      desc: 'Atualiza preços via arquivo .txt Impakto',
+      color: 'bg-green-50 text-green-600',
+    },
+    ...(perfil === 'ti' ? [{
+      to: '/admin/configuracoes',
+      icon: Settings,
+      label: 'Configurações',
+      desc: 'Usuários, perfis e acessos',
+      color: 'bg-teal-50 text-teal-600',
+    }] : []),
+    {
+      to: '/admin/pedidos',
+      icon: BarChart3,
+      label: 'Pedidos',
+      desc: 'Em breve',
+      color: 'bg-gray-50 text-gray-300',
+    },
+  ]
+
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-lg font-semibold text-gray-800">Painel Admin</h2>
