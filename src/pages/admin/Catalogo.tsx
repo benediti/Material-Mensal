@@ -508,12 +508,13 @@ export default function Catalogo() {
                   <span className="flex items-center gap-1">Categoria <SortIcon field="categoria" /></span>
                 </th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">UN</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Preço</th>
                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Ativo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {itensFiltrados.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400 text-sm">Nenhum item encontrado.</td></tr>
+                <tr><td colSpan={7} className="text-center py-12 text-gray-400 text-sm">Nenhum item encontrado.</td></tr>
               )}
               {itensFiltrados.map(item => {
                 const isEditing = editingId === item.id
@@ -607,6 +608,15 @@ export default function Catalogo() {
                           {item.unidade}
                         </span>
                       )}
+                    </td>
+
+                    {/* Preço */}
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                      {item.preco_impakto != null
+                        ? <span className="text-xs text-gray-600 font-medium">
+                            {item.preco_impakto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </span>
+                        : <span className="text-xs text-gray-300">—</span>}
                     </td>
 
                     {/* Ativo + ações */}
