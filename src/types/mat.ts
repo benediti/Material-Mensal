@@ -44,6 +44,8 @@ export interface MatCatalogo {
   ativo: boolean
   foto_storage_path: string | null
   foto_thumb_url: string | null
+  preco_impakto: number | null
+  preco_atualizado_em: string | null
   created_at: string
   updated_at: string
 }

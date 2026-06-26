@@ -8,6 +8,7 @@ import AdminLayout from '@/components/layout/AdminLayout'
 import AdminDashboard from '@/pages/admin/Dashboard'
 import Catalogo from '@/pages/admin/Catalogo'
 import Configuracoes from '@/pages/admin/Configuracoes'
+import ImportarPrecos from '@/pages/admin/ImportarPrecos'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, perfil, perfilAtivo, loading } = useAuthStore()
@@ -48,6 +49,7 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="catalogo" element={<Catalogo />} />
         <Route path="configuracoes" element={<Configuracoes />} />
+        <Route path="importar-precos" element={<ImportarPrecos />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/admin" replace />} />

@@ -1,4 +1,4 @@
-import { BookOpen, Settings, BarChart3 } from 'lucide-react'
+import { BookOpen, Settings, BarChart3, FileDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const atalhos = [
@@ -15,6 +15,13 @@ const atalhos = [
     label: 'Configurações',
     desc: 'Usuários, perfis e acessos',
     color: 'bg-teal-50 text-teal-600',
+  },
+  {
+    to: '/admin/importar-precos',
+    icon: FileDown,
+    label: 'Importar Preços',
+    desc: 'Atualiza preços via arquivo .txt Impakto',
+    color: 'bg-green-50 text-green-600',
   },
   {
     to: '/admin/pedidos',
