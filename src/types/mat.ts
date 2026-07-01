@@ -61,8 +61,14 @@ export interface MatProduto {
 }
 
 export interface MatSetorDpara {
-  id: string
-  nome_impakto: string
-  endereco_impakto: string
-  centro_custo_operacional_id: string
+  id: number
+  centro_custo_id: number
+  codigo_externo: string
+  nome_externo: string
+  endereco_externo: string
+  bairro_externo: string
+  cidade_externa: string
+  ativo: boolean
+  created_at: string
+  updated_at: string
 }

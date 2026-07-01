@@ -1,47 +1,61 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import type { TipoPedido } from '@/types/mat'
-
-const TIPOS: { value: TipoPedido; label: string; desc: string }[] = [
-  { value: 'mensal',        label: 'Material Mensal',  desc: 'Reposição mensal padrão' },
-  { value: 'equipamento',   label: 'Equipamento',      desc: 'Equipamentos e ferramentas' },
-  { value: 'servico_avulso',label: 'Serviço Avulso',   desc: 'Serviços pontuais' },
-  { value: 'uniforme',      label: 'Uniforme',         desc: 'Roupas e EPIs' },
-]
+import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import type { MatSetorDpara } from '@/types/mat'
+import { ArrowLeft, ShoppingCart, Loader2 } from 'lucide-react'
 
 export default function NovoPedido() {
-  const [tipo, setTipo] = useState<TipoPedido | null>(null)
+  const { setorId } = useParams()
   const navigate = useNavigate()
+  const [setor, setSetor] = useState<MatSetorDpara | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function carregar() {
+      if (!setorId) return
+      const { data } = await supabase
+        .from('mat_setor_dpara')
+        .select('*')
+        .eq('id', setorId)
+        .single()
+      setSetor(data)
+      setLoading(false)
+    }
+    carregar()
+  }, [setorId])
 
   return (
-    <div className="p-4 space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Novo Pedido</h2>
-      <p className="text-sm text-gray-500">Selecione o tipo de pedido:</p>
+    <>
+      <header className="bg-white fixed top-0 w-full z-50 border-b border-gray-200 flex items-center gap-2 px-4 h-14 shadow-sm">
+        <button
+          onClick={() => navigate('/supervisora/setores')}
+          className="p-2 rounded-full text-blue-700 hover:bg-blue-50 transition-colors active:scale-95"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-base font-bold text-blue-700 truncate">
+          {loading ? 'Carregando...' : (setor?.nome_externo ?? 'Pedido')}
+        </h1>
+      </header>
 
-      <div className="space-y-2">
-        {TIPOS.map(t => (
-          <button
-            key={t.value}
-            onClick={() => setTipo(t.value)}
-            className={`w-full text-left card transition-all active:scale-[0.98] ${
-              tipo === t.value
-                ? 'border-primary ring-1 ring-primary/30'
-                : 'hover:shadow-md'
-            }`}
-          >
-            <p className="font-medium text-sm text-gray-900">{t.label}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{t.desc}</p>
-          </button>
-        ))}
+      <div className="px-4 max-w-2xl mx-auto pt-2">
+        {loading ? (
+          <div className="flex justify-center py-24">
+            <Loader2 size={28} className="animate-spin text-blue-600" />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-gray-400">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center">
+              <ShoppingCart size={32} className="text-blue-300" />
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-gray-500">Montar pedido</p>
+              <p className="text-sm mt-1 text-gray-400">{setor?.nome_externo}</p>
+              <p className="text-xs mt-3 text-blue-400">Em desenvolvimento</p>
+            </div>
+          </div>
+        )}
       </div>
-
-      <button
-        className="btn-primary w-full"
-        disabled={!tipo}
-        onClick={() => navigate('/meus-pedidos')}
-      >
-        Continuar
-      </button>
-    </div>
+    </>
   )
 }

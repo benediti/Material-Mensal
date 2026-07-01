@@ -1,42 +1,91 @@
 import { useAuthStore } from '@/stores/authStore'
-import { PlusCircle, ClipboardList, Clock } from 'lucide-react'
+import { Building2, ClipboardList, ChevronRight, UserCircle, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-export default function Dashboard() {
-  const { user } = useAuthStore()
+export default function SupervisoraDashboard() {
+  const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
+  const nomeCompleto = user?.user_metadata?.full_name ?? user?.email ?? ''
+  const primeiroNome = nomeCompleto.split(' ')[0]
 
   return (
-    <div className="p-4 space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900">Olá! 👋</h2>
-        <p className="text-sm text-gray-500">{user?.email}</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
+    <>
+      {/* Top App Bar */}
+      <header className="bg-white fixed top-0 w-full z-50 border-b border-gray-200 flex justify-between items-center px-4 h-14 shadow-sm">
+        <h1 className="text-base font-bold text-blue-700">Material Mensal</h1>
         <button
-          onClick={() => navigate('/novo-pedido')}
-          className="card flex flex-col items-center gap-2 py-5 hover:shadow-md transition-shadow active:scale-95"
+          onClick={async () => { await signOut(); navigate('/login') }}
+          className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+          aria-label="Sair"
         >
-          <PlusCircle size={24} className="text-primary" />
-          <span className="text-sm font-medium text-gray-700">Novo Pedido</span>
+          <LogOut size={20} />
         </button>
-        <button
-          onClick={() => navigate('/meus-pedidos')}
-          className="card flex flex-col items-center gap-2 py-5 hover:shadow-md transition-shadow active:scale-95"
-        >
-          <ClipboardList size={24} className="text-primary" />
-          <span className="text-sm font-medium text-gray-700">Meus Pedidos</span>
-        </button>
-      </div>
+      </header>
 
-      <div className="card">
-        <div className="flex items-center gap-2 mb-3">
-          <Clock size={16} className="text-gray-400" />
-          <h3 className="text-sm font-medium text-gray-700">Pedidos recentes</h3>
+      <div className="px-4 max-w-2xl mx-auto space-y-5 pt-2">
+        {/* Saudação */}
+        <div>
+          <p className="text-xs text-gray-400">Bem-vinda,</p>
+          <h2 className="text-lg font-bold text-gray-800">{primeiroNome} 👋</h2>
         </div>
-        <p className="text-sm text-gray-400 text-center py-4">Nenhum pedido ainda. Crie o primeiro! 🗂️</p>
+
+        {/* Cards de ação rápida */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate('/supervisora/setores')}
+            className="bg-blue-600 rounded-xl p-4 text-white text-left active:scale-[0.97] transition-transform"
+            style={{ boxShadow: '0px 4px 12px rgba(0, 88, 188, 0.25)' }}
+          >
+            <Building2 size={24} className="mb-3" />
+            <p className="text-sm font-bold leading-snug">Novo Pedido</p>
+            <p className="text-xs opacity-70 mt-0.5">Selecionar local</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/supervisora/pedidos')}
+            className="bg-white border border-gray-200 rounded-xl p-4 text-left active:scale-[0.97] transition-transform"
+            style={{ boxShadow: '0px 4px 12px rgba(0, 122, 255, 0.06)' }}
+          >
+            <ClipboardList size={24} className="mb-3 text-blue-600" />
+            <p className="text-sm font-bold text-gray-800 leading-snug">Meus Pedidos</p>
+            <p className="text-xs text-gray-400 mt-0.5">Histórico</p>
+          </button>
+        </div>
+
+        {/* Atalho para setores */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+          style={{ boxShadow: '0px 4px 12px rgba(0, 122, 255, 0.06)' }}>
+          <div className="px-4 py-3 border-b border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acesso rápido</p>
+          </div>
+          <button
+            onClick={() => navigate('/supervisora/setores')}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+          >
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Building2 size={18} className="text-blue-600" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-semibold text-gray-800">Gestão de Limpeza</p>
+              <p className="text-xs text-gray-400">Selecione o local do pedido</p>
+            </div>
+            <ChevronRight size={16} className="text-blue-500" />
+          </button>
+          <button
+            onClick={() => navigate('/supervisora/perfil')}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors border-t border-gray-50"
+          >
+            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+              <UserCircle size={18} className="text-gray-500" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-semibold text-gray-800">Meu Perfil</p>
+              <p className="text-xs text-gray-400">{user?.email}</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-400" />
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

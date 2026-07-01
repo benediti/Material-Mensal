@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
-type Perfil = 'ti' | 'compras' | 'diretoria' | 'pendente' | null
+export type Perfil = 'ti' | 'compras' | 'diretoria' | 'supervisora' | 'pendente' | null
 
 interface AuthState {
   user: User | null

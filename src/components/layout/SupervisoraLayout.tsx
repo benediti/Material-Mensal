@@ -1,46 +1,45 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, ClipboardList, LogOut } from 'lucide-react'
+import { Home, Building2, ClipboardList, User } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+
+const NAV = [
+  { to: '/supervisora', icon: Home, label: 'Home', end: true },
+  { to: '/supervisora/setores', icon: Building2, label: 'Setores' },
+  { to: '/supervisora/pedidos', icon: ClipboardList, label: 'Pedidos' },
+  { to: '/supervisora/perfil', icon: User, label: 'Perfil' },
+]
 
 export default function SupervisoraLayout() {
   const { signOut } = useAuthStore()
   const navigate = useNavigate()
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-primary text-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <h1 className="font-semibold text-base">Equippe Material</h1>
-        <button
-          onClick={async () => { await signOut(); navigate('/login') }}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-          aria-label="Sair"
-        >
-          <LogOut size={18} />
-        </button>
-      </header>
+  async function handleSignOut() {
+    await signOut()
+    navigate('/login')
+  }
 
-      <main className="flex-1 pb-20">
-        <Outlet />
+  return (
+    <div className="min-h-screen bg-[#f7f9fc] flex flex-col">
+      <main className="flex-1 pb-24 pt-14">
+        <Outlet context={{ handleSignOut }} />
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex">
-        {[
-          { to: '/', icon: Home, label: 'Início' },
-          { to: '/novo-pedido', icon: PlusCircle, label: 'Novo Pedido' },
-          { to: '/meus-pedidos', icon: ClipboardList, label: 'Pedidos' },
-        ].map(({ to, icon: Icon, label }) => (
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-white h-20 border-t border-gray-200 shadow-md">
+        {NAV.map(({ to, icon: Icon, label, end }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={end}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors ${
-                isActive ? 'text-primary' : 'text-gray-400'
+              `flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-2xl transition-colors ${
+                isActive
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-400 hover:bg-gray-100'
               }`
             }
           >
-            <Icon size={20} />
-            {label}
+            <Icon size={22} />
+            <span className="text-[11px] font-semibold">{label}</span>
           </NavLink>
         ))}
       </nav>
