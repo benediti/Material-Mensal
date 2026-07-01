@@ -1,4 +1,4 @@
-import { BookOpen, Settings, BarChart3, FileDown } from 'lucide-react'
+import { BookOpen, Settings, BarChart3, FileDown, Eye } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -20,13 +20,22 @@ export default function AdminDashboard() {
       desc: 'Atualiza preços via arquivo .txt Impakto',
       color: 'bg-green-50 text-green-600',
     },
-    ...(perfil === 'ti' ? [{
-      to: '/admin/configuracoes',
-      icon: Settings,
-      label: 'Configurações',
-      desc: 'Usuários, perfis e acessos',
-      color: 'bg-teal-50 text-teal-600',
-    }] : []),
+    ...(perfil === 'ti' ? [
+      {
+        to: '/admin/configuracoes',
+        icon: Settings,
+        label: 'Configurações',
+        desc: 'Usuários, perfis e acessos',
+        color: 'bg-teal-50 text-teal-600',
+      },
+      {
+        to: '/supervisora',
+        icon: Eye,
+        label: 'Ver como Supervisora',
+        desc: 'Testar a visão das supervisoras',
+        color: 'bg-purple-50 text-purple-600',
+      },
+    ] : []),
     {
       to: '/admin/pedidos',
       icon: BarChart3,

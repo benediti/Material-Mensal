@@ -70,11 +70,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-/** Protege rotas de supervisora */
+/** Protege rotas de supervisora — ti também pode acessar para testes */
 function SupervisoraRoute({ children }: { children: React.ReactNode }) {
   const { perfil, loading } = useAuthStore()
   if (loading) return null
-  if (perfil !== 'supervisora') return <Navigate to="/admin" replace />
+  if (perfil !== 'supervisora' && perfil !== 'ti') return <Navigate to="/admin" replace />
   return <>{children}</>
 }
 

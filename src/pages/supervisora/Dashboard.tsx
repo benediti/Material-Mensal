@@ -1,9 +1,9 @@
 import { useAuthStore } from '@/stores/authStore'
-import { Building2, ClipboardList, ChevronRight, UserCircle, LogOut } from 'lucide-react'
+import { Building2, ClipboardList, ChevronRight, UserCircle, LogOut, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function SupervisoraDashboard() {
-  const { user, signOut } = useAuthStore()
+  const { user, perfil, signOut } = useAuthStore()
   const navigate = useNavigate()
   const nomeCompleto = user?.user_metadata?.full_name ?? user?.email ?? ''
   const primeiroNome = nomeCompleto.split(' ')[0]
@@ -12,7 +12,17 @@ export default function SupervisoraDashboard() {
     <>
       {/* Top App Bar */}
       <header className="bg-white fixed top-0 w-full z-50 border-b border-gray-200 flex justify-between items-center px-4 h-14 shadow-sm">
-        <h1 className="text-base font-bold text-blue-700">Material Mensal</h1>
+        <div className="flex items-center gap-2">
+          {perfil === 'ti' && (
+            <button
+              onClick={() => navigate('/admin')}
+              className="flex items-center gap-1 text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <ArrowLeft size={13} /> Admin
+            </button>
+          )}
+          <h1 className="text-base font-bold text-blue-700">Material Mensal</h1>
+        </div>
         <button
           onClick={async () => { await signOut(); navigate('/login') }}
           className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
