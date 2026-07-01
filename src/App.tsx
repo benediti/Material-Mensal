@@ -12,6 +12,7 @@ import Catalogo from '@/pages/admin/Catalogo'
 import Configuracoes from '@/pages/admin/Configuracoes'
 import ImportarPrecos from '@/pages/admin/ImportarPrecos'
 import ImportarHistorico from '@/pages/admin/ImportarHistorico'
+import AdminPedidos from '@/pages/admin/Pedidos'
 
 // Supervisora
 import SupervisoraLayout from '@/components/layout/SupervisoraLayout'
@@ -108,6 +109,7 @@ export default function App() {
         <Route path="configuracoes" element={<TiRoute><Configuracoes /></TiRoute>} />
         <Route path="importar-precos" element={<ImportarPrecos />} />
         <Route path="importar-historico" element={<TiRoute><ImportarHistorico /></TiRoute>} />
+        <Route path="pedidos" element={<AdminPedidos />} />
       </Route>
 
       {/* Supervisora */}

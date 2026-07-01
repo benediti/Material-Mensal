@@ -47,8 +47,8 @@ export default function AdminDashboard() {
       to: '/admin/pedidos',
       icon: BarChart3,
       label: 'Pedidos',
-      desc: 'Em breve',
-      color: 'bg-gray-50 text-gray-300',
+      desc: 'Relatório por competência',
+      color: 'bg-blue-50 text-blue-600',
     },
   ]
 
