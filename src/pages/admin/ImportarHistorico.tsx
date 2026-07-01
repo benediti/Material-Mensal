@@ -22,6 +22,7 @@ interface ItemResolv {
 interface SetorResolv {
   codigoSetor: string
   nomeSetor: string
+  setorDparaId: number | null  // mat_setor_dpara.id específico
   centroCustoId: number | null
   itens: ItemResolv[]
 }
@@ -115,22 +116,35 @@ export default function ImportarHistorico() {
     const codigosProduto = [...new Set(linhas.map(l => l.codigoProduto))]
 
     const [{ data: setorRows }, { data: catalogoRows }] = await Promise.all([
-      supabase.from('mat_setor_dpara').select('centro_custo_id, codigo_externo').in('codigo_externo', codigosSetor),
-      supabase.from('mat_catalogo').select('id, codigo_impakto').in('codigo_impakto', codigosProduto),
+      supabase
+        .from('mat_setor_dpara')
+        .select('id, centro_custo_id, codigo_externo')
+        .in('codigo_externo', codigosSetor),
+      supabase
+        .from('mat_catalogo')
+        .select('id, codigo_impakto')
+        .in('codigo_impakto', codigosProduto),
     ])
 
-    const setorMap: Record<string, number> = {}
-    for (const row of setorRows ?? []) setorMap[row.codigo_externo] = row.centro_custo_id
+    // Mapeia codigo_externo → primeiro mat_setor_dpara encontrado (id + centro_custo_id)
+    const setorMap: Record<string, { id: number; centroCustoId: number }> = {}
+    for (const row of setorRows ?? []) {
+      if (!setorMap[row.codigo_externo]) {
+        setorMap[row.codigo_externo] = { id: row.id, centroCustoId: row.centro_custo_id }
+      }
+    }
 
     const catalogoMap: Record<string, number> = {}
     for (const row of catalogoRows ?? []) catalogoMap[row.codigo_impakto] = row.id
 
     const setoresResolvidos: SetorResolv[] = []
     for (const [codigo, { nomeSetor, itens }] of grupo) {
+      const match = setorMap[codigo]
       setoresResolvidos.push({
         codigoSetor: codigo,
         nomeSetor,
-        centroCustoId: setorMap[codigo] ?? null,
+        setorDparaId: match?.id ?? null,
+        centroCustoId: match?.centroCustoId ?? null,
         itens: itens.map(i => ({
           codigoProduto: i.codigoProduto,
           descricao: i.descricao,
@@ -156,7 +170,7 @@ export default function ImportarHistorico() {
     let setoresIgnorados = 0
     let itensIgnorados = 0
 
-    const setoresValidos = setores.filter(s => s.centroCustoId !== null)
+    const setoresValidos = setores.filter(s => s.centroCustoId !== null && s.setorDparaId !== null)
 
     for (const setor of setoresValidos) {
       try {
@@ -167,6 +181,7 @@ export default function ImportarHistorico() {
             status: 'concluido',
             competencia,
             centro_custo_id: setor.centroCustoId,
+            setor_dpara_id: setor.setorDparaId,
           })
           .select('id')
           .single()
@@ -197,7 +212,7 @@ export default function ImportarHistorico() {
       }
     }
 
-    setoresIgnorados += setores.filter(s => s.centroCustoId === null).length
+    setoresIgnorados += setores.filter(s => s.centroCustoId === null || s.setorDparaId === null).length
 
     setResultado({ competencia, pedidosCriados, itensCriados, setoresIgnorados, itensIgnorados })
     setSetores(null)
@@ -215,8 +230,8 @@ export default function ImportarHistorico() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const setoresValidos = setores?.filter(s => s.centroCustoId !== null) ?? []
-  const setoresInvalidos = setores?.filter(s => s.centroCustoId === null) ?? []
+  const setoresValidos = setores?.filter(s => s.centroCustoId !== null && s.setorDparaId !== null) ?? []
+  const setoresInvalidos = setores?.filter(s => s.centroCustoId === null || s.setorDparaId === null) ?? []
   const totalItens = setoresValidos.reduce((n, s) => n + s.itens.length, 0)
   const totalItensIgnorados = setoresValidos.reduce((n, s) => n + s.itens.filter(i => i.catalogoId === null).length, 0)
   const totalSetores = setores?.length ?? 0
@@ -283,7 +298,7 @@ export default function ImportarHistorico() {
           <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700 space-y-1">
             <p className="font-semibold">Como funciona</p>
             <p>O arquivo deve seguir o formato exportado pela Impakto. A competência é extraída automaticamente do nome do arquivo.</p>
-            <p className="mt-1">Cada setor gera um pedido com status <strong>concluído</strong>. Produtos não cadastrados no catálogo são ignorados.</p>
+            <p className="mt-1">Cada loja gera um pedido individual com status <strong>concluído</strong>. Produtos não cadastrados no catálogo são ignorados.</p>
           </div>
         </>
       )}
@@ -297,7 +312,7 @@ export default function ImportarHistorico() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: 'Setores', valor: totalSetores, cor: 'text-gray-700 bg-gray-50' },
+              { label: 'Lojas no CSV', valor: totalSetores, cor: 'text-gray-700 bg-gray-50' },
               { label: 'Pedidos a criar', valor: setoresValidos.length, cor: 'text-blue-700 bg-blue-50' },
               { label: 'Itens a inserir', valor: totalItens - totalItensIgnorados, cor: 'text-green-700 bg-green-50' },
               { label: 'Ignorados', valor: setoresInvalidos.length + totalItensIgnorados, cor: totalItensIgnorados + setoresInvalidos.length > 0 ? 'text-amber-700 bg-amber-50' : 'text-gray-400 bg-gray-50' },
@@ -313,7 +328,7 @@ export default function ImportarHistorico() {
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
               <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
               <div className="text-xs text-amber-700">
-                <p className="font-semibold mb-1">{setoresInvalidos.length} setor(es) não encontrado(s) no sistema:</p>
+                <p className="font-semibold mb-1">{setoresInvalidos.length} loja(s) não encontrada(s) no sistema:</p>
                 <ul className="space-y-0.5">
                   {setoresInvalidos.map(s => (
                     <li key={s.codigoSetor}>Código <strong>{s.codigoSetor}</strong> — {s.nomeSetor}</li>

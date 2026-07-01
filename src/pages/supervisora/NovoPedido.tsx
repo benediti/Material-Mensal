@@ -67,7 +67,7 @@ export default function NovoPedido() {
       const { data: pedidos } = await supabase
         .from('mat_pedido')
         .select('id, competencia, status, created_at')
-        .eq('centro_custo_id', setorData.centro_custo_id)
+        .eq('setor_dpara_id', setorId)
         .order('created_at', { ascending: false })
         .limit(1)
 
