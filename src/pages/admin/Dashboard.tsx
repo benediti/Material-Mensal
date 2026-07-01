@@ -1,4 +1,4 @@
-import { BookOpen, Settings, BarChart3, FileDown, Eye } from 'lucide-react'
+import { BookOpen, Settings, BarChart3, FileDown, Eye, History } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -27,6 +27,13 @@ export default function AdminDashboard() {
         label: 'Configurações',
         desc: 'Usuários, perfis e acessos',
         color: 'bg-teal-50 text-teal-600',
+      },
+      {
+        to: '/admin/importar-historico',
+        icon: History,
+        label: 'Importar Histórico',
+        desc: 'Importar pedidos Impakto (.csv)',
+        color: 'bg-orange-50 text-orange-600',
       },
       {
         to: '/supervisora',
